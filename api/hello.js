@@ -42,24 +42,35 @@ ${websiteText.slice(0, 4000)}
 2. 【今すぐできるコンバージョン率UPのアクション】
 ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
-    // 新仕様：Interactions API エンドポイントを呼び出し
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gemini-2.5-flash',
-        input: promptText
-      })
-    });
+    // 利用可能なモデルを順番に試すリスト
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    let lastErrorMessage = '';
 
-    const geminiData = await geminiRes.json();
-    if (!geminiRes.ok) {
-      throw new Error(geminiData.error?.message || 'Gemini API エラーが発生しました');
+    for (const modelName of modelsToTry) {
+      try {
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }] }]
+          })
+        });
+
+        const geminiData = await geminiRes.json();
+        
+        // 成功したらその結果を返して終了
+        if (geminiRes.ok && geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
+          return res.status(200).json({ analysis: geminiData.candidates[0].content.parts[0].text });
+        }
+        
+        lastErrorMessage = geminiData.error?.message || 'API呼び出し失敗';
+      } catch (e) {
+        lastErrorMessage = e.message;
+      }
     }
 
-    // レスポンスからテキストを抽出
-    const responseText = geminiData.output?.[0]?.text || geminiData.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(geminiData);
-    return res.status(200).json({ analysis: responseText });
+    // 全てのモデルで失敗した場合のみエラーを投げる
+    throw new Error(lastErrorMessage || '全てのGeminiモデルの呼び出しに失敗しました');
 
   } catch (error) {
     return res.status(500).json({ 
