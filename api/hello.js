@@ -1,7 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -45,10 +44,10 @@ ${websiteText.slice(0, 4000)}
 
 ■ プロの改善提案:
 1. 【キャッチコピー書き換え案】
-   ・現状の課題：
-   ・修正案：
+・現状の課題：
+・修正案：
 2. 【今すぐできるコンバージョン率UPのアクション】
-   ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`
+・ボタン文字の変更や、追加すべき補足情報の具体的指示。`
             }
           ]
         }
@@ -56,8 +55,7 @@ ${websiteText.slice(0, 4000)}
     });
 
     return res.status(200).json({ analysis: response.text });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return res.status(500).json({ error: 'Internal Server Error', details: errorMessage });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal Server Error', details: error.message || 'Unknown error' });
   }
 }
