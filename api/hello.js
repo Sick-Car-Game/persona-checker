@@ -59,7 +59,7 @@ ${websiteText.slice(0, 4000)}
 ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: [
         {
           role: 'user',
