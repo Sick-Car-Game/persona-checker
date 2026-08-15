@@ -1,4 +1,6 @@
-module.exports = async function (req, res) {
+import { GoogleGenAI } from '@google/genai';
+
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -11,13 +13,14 @@ module.exports = async function (req, res) {
     const { targetUrl, persona } = req.body || {};
     if (!targetUrl) return res.status(400).json({ error: 'URL is required' });
 
-    // 1. Webページのテキスト取得
     const jinaRes = await fetch('https://r.jina.ai/' + targetUrl);
     if (!jinaRes.ok) throw new Error('Webサイトのテキスト取得に失敗しました');
     const websiteText = await jinaRes.text();
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY が設定されていません');
+
+    const ai = new GoogleGenAI({ apiKey });
 
     const promptText = `あなたは『${persona || '20代〜30代の一般消費者（スマホメイン・直感重視）'}』です。
 以下に提供されるWebサイトのテキスト情報を、スマホ画面で3秒〜10秒程度サッと流し読みした顧客になりきって評価してください。
@@ -39,25 +42,12 @@ ${websiteText.slice(0, 4000)}
 2. 【今すぐできるコンバージョン率UPのアクション】
 ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
-    // 2. gemini-2.0-flash エンドポイントへ直接リクエスト
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: promptText }] }]
-      })
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: promptText,
     });
 
-    const geminiData = await geminiRes.json();
-
-    if (!geminiRes.ok) {
-      throw new Error(geminiData.error?.message || 'Gemini API呼び出しエラー');
-    }
-
-    const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!responseText) throw new Error('AIからの応答テキストが取得できませんでした');
-
-    return res.status(200).json({ analysis: responseText });
+    return res.status(200).json({ analysis: response.text });
 
   } catch (error) {
     return res.status(500).json({ 
@@ -65,4 +55,4 @@ ${websiteText.slice(0, 4000)}
       details: error.message || 'Unknown error' 
     });
   }
-};
+}
