@@ -1,5 +1,4 @@
 module.exports = async function (req, res) {
-  // CORSヘッダーの設定
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -9,15 +8,13 @@ module.exports = async function (req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const body = req.body || {};
-    const { targetUrl, persona } = body;
-
+    const { targetUrl, persona } = req.body || {};
     if (!targetUrl) return res.status(400).json({ error: 'URL is required' });
 
-    // Jina AI でWebページのテキストを取得
-    const jinaResponse = await fetch('https://r.jina.ai/' + targetUrl);
-    if (!jinaResponse.ok) throw new Error('Webサイトのテキスト取得に失敗しました');
-    const websiteText = await jinaResponse.text();
+    // 1. Webページのテキスト取得
+    const jinaRes = await fetch('https://r.jina.ai/' + targetUrl);
+    if (!jinaRes.ok) throw new Error('Webサイトのテキスト取得に失敗しました');
+    const websiteText = await jinaRes.text();
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY が設定されていません');
@@ -42,23 +39,8 @@ ${websiteText.slice(0, 4000)}
 2. 【今すぐできるコンバージョン率UPのアクション】
 ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
-    // 1. APIキーで現在利用可能なモデル一覧をGoogleから直接取得
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    const listData = await listRes.json();
-
-    if (!listRes.ok) {
-      throw new Error(listData.error?.message || 'モデル一覧の取得に失敗しました。GEMINI_API_KEYを確認してください。');
-    }
-
-    // 文章生成に対応している利用可能なモデル（gemini-2.0-flash など）を自動検出
-    const validModel = listData.models?.find(m => 
-      m.supportedGenerationMethods?.includes('generateContent')
-    );
-
-    const modelPath = validModel ? validModel.name : 'models/gemini-2.0-flash';
-
-    // 2. 検出されたモデルを使ってリクエスト送信
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${apiKey}`, {
+    // 2. gemini-2.0-flash エンドポイントへ直接リクエスト
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -69,13 +51,11 @@ ${websiteText.slice(0, 4000)}
     const geminiData = await geminiRes.json();
 
     if (!geminiRes.ok) {
-      throw new Error(geminiData.error?.message || `${modelPath} の呼び出しに失敗しました`);
+      throw new Error(geminiData.error?.message || 'Gemini API呼び出しエラー');
     }
 
     const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!responseText) {
-      throw new Error('Geminiからの応答テキスト取得に失敗しました');
-    }
+    if (!responseText) throw new Error('AIからの応答テキストが取得できませんでした');
 
     return res.status(200).json({ analysis: responseText });
 
