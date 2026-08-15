@@ -43,10 +43,10 @@ ${websiteText.slice(0, 4000)}
 
 ■ プロの改善提案:
 1. 【キャッチコピー書き換え案】
-・現状の課題：
-・修正案：
+   ・現状の課題：
+   ・修正案：
 2. 【今すぐできるコンバージョン率UPのアクション】
-・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
+   ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
     const result = await model.generateContent(promptText);
     const responseText = result.response.text();
