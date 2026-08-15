@@ -42,7 +42,7 @@ ${websiteText.slice(0, 4000)}
 2. 【今すぐできるコンバージョン率UPのアクション】
 ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
-    // 新しい Interactions API エンドポイントを呼び出し
+    // 新仕様：Interactions API エンドポイントを呼び出し
     const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,7 +57,7 @@ ${websiteText.slice(0, 4000)}
       throw new Error(geminiData.error?.message || 'Gemini API エラーが発生しました');
     }
 
-    // Interactions API のレスポンス取得
+    // レスポンスからテキストを抽出
     const responseText = geminiData.output?.[0]?.text || geminiData.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(geminiData);
     return res.status(200).json({ analysis: responseText });
 
