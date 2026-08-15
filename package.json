@@ -1,9 +1,6 @@
 {
   "name": "persona-checker",
   "version": "1.0.0",
-  "scripts": {
-    "build": "tsc"
-  },
   "dependencies": {
     "@google/genai": "^0.1.1"
   },
