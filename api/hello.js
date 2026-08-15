@@ -42,12 +42,13 @@ ${websiteText.slice(0, 4000)}
 2. 【今すぐできるコンバージョン率UPのアクション】
 ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
-    // Gemini API を直接 fetch で呼び出し（gemini-2.0-flash を指定）
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+    // 新しい Interactions API エンドポイントを呼び出し
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: promptText }] }]
+        model: 'gemini-2.5-flash',
+        input: promptText
       })
     });
 
@@ -56,7 +57,8 @@ ${websiteText.slice(0, 4000)}
       throw new Error(geminiData.error?.message || 'Gemini API エラーが発生しました');
     }
 
-    const responseText = geminiData.candidates[0].content.parts[0].text;
+    // Interactions API のレスポンス取得
+    const responseText = geminiData.output?.[0]?.text || geminiData.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(geminiData);
     return res.status(200).json({ analysis: responseText });
 
   } catch (error) {
