@@ -42,8 +42,8 @@ ${websiteText.slice(0, 4000)}
 2. 【今すぐできるコンバージョン率UPのアクション】
 ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
-    // Gemini API を直接 fetch で呼び出し（ライブラリ不使用）
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    // Gemini API を直接 fetch で呼び出し（gemini-2.0-flash を指定）
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
