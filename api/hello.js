@@ -42,8 +42,23 @@ ${websiteText.slice(0, 4000)}
 2. 【今すぐできるコンバージョン率UPのアクション】
 ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
-    // 安定版の gemini-1.5-flash エンドポイントを直接呼び出し
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    // 1. APIキーで現在利用可能なモデル一覧をGoogleから直接取得
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const listData = await listRes.json();
+
+    if (!listRes.ok) {
+      throw new Error(listData.error?.message || 'モデル一覧の取得に失敗しました。GEMINI_API_KEYを確認してください。');
+    }
+
+    // 文章生成に対応している利用可能なモデル（gemini-2.0-flash など）を自動検出
+    const validModel = listData.models?.find(m => 
+      m.supportedGenerationMethods?.includes('generateContent')
+    );
+
+    const modelPath = validModel ? validModel.name : 'models/gemini-2.0-flash';
+
+    // 2. 検出されたモデルを使ってリクエスト送信
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -54,7 +69,7 @@ ${websiteText.slice(0, 4000)}
     const geminiData = await geminiRes.json();
 
     if (!geminiRes.ok) {
-      throw new Error(geminiData.error?.message || 'Gemini API エラーが発生しました');
+      throw new Error(geminiData.error?.message || `${modelPath} の呼び出しに失敗しました`);
     }
 
     const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
