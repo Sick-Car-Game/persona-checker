@@ -1,6 +1,5 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
 module.exports = async function (req, res) {
+  // CORSヘッダーの設定
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -11,8 +10,7 @@ module.exports = async function (req, res) {
 
   try {
     const body = req.body || {};
-    const targetUrl = body.targetUrl;
-    const persona = body.persona;
+    const { targetUrl, persona } = body;
 
     if (!targetUrl) return res.status(400).json({ error: 'URL is required' });
 
@@ -23,10 +21,6 @@ module.exports = async function (req, res) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY が設定されていません');
-
-    // 安定版SDKの呼び出し処理
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const promptText = `あなたは『${persona || '20代〜30代の一般消費者（スマホメイン・直感重視）'}』です。
 以下に提供されるWebサイトのテキスト情報を、スマホ画面で3秒〜10秒程度サッと流し読みした顧客になりきって評価してください。
@@ -43,15 +37,28 @@ ${websiteText.slice(0, 4000)}
 
 ■ プロの改善提案:
 1. 【キャッチコピー書き換え案】
-   ・現状の課題：
-   ・修正案：
+・現状の課題：
+・修正案：
 2. 【今すぐできるコンバージョン率UPのアクション】
-   ・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
+・ボタン文字の変更や、追加すべき補足情報の具体的指示。`;
 
-    const result = await model.generateContent(promptText);
-    const responseText = result.response.text();
+    // Gemini API を直接 fetch で呼び出し（ライブラリ不使用）
+    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: promptText }] }]
+      })
+    });
 
+    const geminiData = await geminiRes.json();
+    if (!geminiRes.ok) {
+      throw new Error(geminiData.error?.message || 'Gemini API エラーが発生しました');
+    }
+
+    const responseText = geminiData.candidates[0].content.parts[0].text;
     return res.status(200).json({ analysis: responseText });
+
   } catch (error) {
     return res.status(500).json({ 
       error: 'Internal Server Error', 
